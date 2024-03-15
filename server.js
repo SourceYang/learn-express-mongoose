@@ -4,6 +4,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const port = 8000;
 
+// add
+const BookInstance = require('./models/bookinstance');
+const Author = require('./models/author');
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
@@ -36,9 +40,20 @@ app.get('/home', (_, res) => {
   Home.show_home(res);
 })
 
+// modified
 app.get('/available', (_, res) => {
-  BooksStatus.show_all_books_status(res);
-})
+  BookInstance.find({ status: 'available' })
+    .populate('book', 'title')
+    .exec((err, bookInstances) => {
+      if (err) { return res.status(500).send(err); }
+      // Transform the data into the required format
+      const booksAvailable = bookInstances.map(instance => ({
+        title: instance.book.title,
+        status: instance.status
+      }));
+      res.json(booksAvailable);
+    });
+});
 
 app.get('/books', (_, res) => {
   Books.show_books()
@@ -46,9 +61,19 @@ app.get('/books', (_, res) => {
     .catch((_) => res.send('No books found'));
 })
 
+// modified
 app.get('/authors', (_, res) => {
-  Authors.show_all_authors(res);
-})
+  Author.find()
+    .exec((err, authors) => {
+      if (err) { return res.status(500).send(err); }
+      // Use virtuals to get the name and lifespan
+      const authorsList = authors.map(author => ({
+        name: author.name,
+        lifespan: author.lifespan
+      }));
+      res.json(authorsList);
+    });
+});
 
 app.get('/book_dtls', (req, res) => {
   BookDetails.show_book_dtls(res, req.query.id);
